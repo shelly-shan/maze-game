@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="format-detection" content="telephone=no">
+    <title>迷宫大冒险 🎮</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* 防止 iOS 上整个页面拖动 */
+        body {
+            overscroll-behavior-y: none;
+            -webkit-overflow-scrolling: touch;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 标题 -->
+        <header class="header">
+            <h1>🌟 迷宫大冒险 🌟</h1>
+            <p class="subtitle">选择你的角色，挑战迷宫吧！</p>
+        </header>
+
+        <!-- 配置面板 -->
+        <div id="configPanel" class="config-panel">
+            <!-- 难度选择 -->
+            <div class="config-section">
+                <h2 class="section-title">🎯 选择难度</h2>
+                <div class="difficulty-options">
+                    <label class="difficulty-option" data-level="easy">
+                        <input type="radio" name="difficulty" value="easy" checked>
+                        <span class="option-content">
+                            <span class="difficulty-icon">🌱</span>
+                            <span class="difficulty-name">简单</span>
+                            <span class="difficulty-desc">10×10</span>
+                        </span>
+                    </label>
+                    <label class="difficulty-option" data-level="medium">
+                        <input type="radio" name="difficulty" value="medium">
+                        <span class="option-content">
+                            <span class="difficulty-icon">🌿</span>
+                            <span class="difficulty-name">中等</span>
+                            <span class="difficulty-desc">15×15</span>
+                        </span>
+                    </label>
+                    <label class="difficulty-option" data-level="hard">
+                        <input type="radio" name="difficulty" value="hard">
+                        <span class="option-content">
+                            <span class="difficulty-icon">🌲</span>
+                            <span class="difficulty-name">困难</span>
+                            <span class="difficulty-desc">25×25</span>
+                        </span>
+                    </label>
+                    <label class="difficulty-option" data-level="expert">
+                        <input type="radio" name="difficulty" value="expert">
+                        <span class="option-content">
+                            <span class="difficulty-icon">🔥</span>
+                            <span class="difficulty-name">专家</span>
+                            <span class="difficulty-desc">41×41</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 迷雾模式 -->
+            <div class="config-section">
+                <h2 class="section-title">🌫️ 游戏模式</h2>
+                <div class="mode-options">
+                    <label class="mode-option">
+                        <input type="radio" name="fogMode" value="normal" checked>
+                        <span class="mode-content">
+                            <span class="mode-icon">☀️</span>
+                            <span class="mode-name">普通模式</span>
+                            <span class="mode-desc">可见全图</span>
+                        </span>
+                    </label>
+                    <label class="mode-option">
+                        <input type="radio" name="fogMode" value="fog">
+                        <span class="mode-content">
+                            <span class="mode-icon">🌫️</span>
+                            <span class="mode-name">迷雾模式</span>
+                            <span class="mode-desc">探索未知</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 角色选择 -->
+            <div class="config-section">
+                <h2 class="section-title">🦸 选择角色</h2>
+                <div class="character-grid">
+                    <label class="character-item" data-char="cat">
+                        <input type="radio" name="character" value="cat" checked>
+                        <span class="character-avatar">🐱</span>
+                        <span class="character-name">小猫咪</span>
+                    </label>
+                    <label class="character-item" data-char="dog">
+                        <input type="radio" name="character" value="dog">
+                        <span class="character-avatar">🐶</span>
+                        <span class="character-name">小狗狗</span>
+                    </label>
+                    <label class="character-item" data-char="rabbit">
+                        <input type="radio" name="character" value="rabbit">
+                        <span class="character-avatar">🐰</span>
+                        <span class="character-name">小白兔</span>
+                    </label>
+                    <label class="character-item" data-char="bear">
+                        <input type="radio" name="character" value="bear">
+                        <span class="character-avatar">🐻</span>
+                        <span class="character-name">小熊熊</span>
+                    </label>
+                    <label class="character-item" data-char="fox">
+                        <input type="radio" name="character" value="fox">
+                        <span class="character-avatar">🦊</span>
+                        <span class="character-name">小狐狸</span>
+                    </label>
+                    <label class="character-item" data-char="panda">
+                        <input type="radio" name="character" value="panda">
+                        <span class="character-avatar">🐼</span>
+                        <span class="character-name">小熊猫</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 开始按钮 -->
+            <button id="startBtn" class="start-btn">
+                <span class="btn-text">开始冒险</span>
+                <span class="btn-icon">🚀</span>
+            </button>
+
+            <!-- 排行榜入口 -->
+            <button id="leaderboardBtn" class="leaderboard-toggle">
+                <span>🏆 查看排行榜</span>
+            </button>
+        </div>
+
+        <!-- 游戏区域 -->
+        <div id="gameArea" class="game-area hidden">
+            <div class="game-header">
+                <div class="timer">
+                    <span class="timer-icon">⏱️</span>
+                    <span id="timerDisplay">00:00.00</span>
+                </div>
+                <div class="game-controls">
+                    <button id="restartBtn" class="icon-btn" title="重新开始">
+                        <span>🔄</span>
+                    </button>
+                    <button id="backBtn" class="icon-btn" title="返回主页">
+                        <span>🏠</span>
+                    </button>
+                </div>
+            </div>
+            <div class="maze-container">
+                <canvas id="mazeCanvas"></canvas>
+            </div>
+
+            <!-- 虚拟方向键控制器 -->
+            <div class="d-pad">
+                <button class="d-pad-btn up" data-direction="up" title="向上">⬆️</button>
+                <button class="d-pad-btn left" data-direction="left" title="向左">⬅️</button>
+                <button class="d-pad-btn down" data-direction="down" title="向下">⬇️</button>
+                <button class="d-pad-btn right" data-direction="right" title="向右">➡️</button>
+            </div>
+
+            <div class="game-instructions">
+                <span class="instruction-item">⌨️ 方向键/WASD 移动</span>
+                <span class="instruction-item">📱 滑动移动</span>
+                <span class="instruction-item">🕹️ 点击方向键</span>
+                <span class="instruction-item">🏁 找到出口</span>
+            </div>
+        </div>
+
+        <!-- 排行榜面板 -->
+        <div id="leaderboardPanel" class="leaderboard-panel hidden">
+            <div class="leaderboard-header">
+                <h2>🏆 荣誉殿堂</h2>
+                <button id="closeLeaderboard" class="close-btn">✕</button>
+            </div>
+            <div class="leaderboard-tabs">
+                <button class="tab-btn active" data-difficulty="easy">简单</button>
+                <button class="tab-btn" data-difficulty="medium">中等</button>
+                <button class="tab-btn" data-difficulty="hard">困难</button>
+                <button class="tab-btn" data-difficulty="expert">专家</button>
+            </div>
+            <div id="leaderboardContent" class="leaderboard-content">
+                <!-- 排行榜内容将通过 JS 动态生成 -->
+            </div>
+            <button id="clearRecords" class="clear-btn">🗑️ 清除记录</button>
+        </div>
+
+        <!-- 胜利弹窗 -->
+        <div id="victoryModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="victory-animation">
+                    <span class="confetti"></span>
+                    <span class="confetti"></span>
+                    <span class="confetti"></span>
+                    <span class="confetti"></span>
+                    <span class="confetti"></span>
+                </div>
+                <h2 class="victory-title">🎉 恭喜通关！</h2>
+                <p class="victory-time">用时: <span id="victoryTime">00:00.00</span></p>
+                <p class="victory-rank">你的排名: <span id="victoryRank">-</span></p>
+                <div class="modal-buttons">
+                    <button id="playAgainBtn" class="modal-btn primary">再玩一次</button>
+                    <button id="exitGameBtn" class="modal-btn secondary">退出游戏</button>
+                    <button id="victoryLeaderboardBtn" class="modal-btn secondary">查看排行</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/maze.js"></script>
+    <script src="js/leaderboard.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
