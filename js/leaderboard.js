@@ -5,7 +5,8 @@
 class Leaderboard {
     constructor() {
         this.storageKey = 'mazeGameLeaderboard';
-        this.currentDifficulty = 'easy';
+        this.currentDifficulty = 'medium';
+        this.currentMode = 'normal'; // 'normal' | 'fog'
         this.init();
     }
 
@@ -34,6 +35,13 @@ class Leaderboard {
             this.showLeaderboard();
         });
 
+        // 模式切换
+        document.querySelectorAll('.mode-tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.switchMode(e.target.dataset.mode);
+            });
+        });
+
         // 难度标签切换
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -43,12 +51,22 @@ class Leaderboard {
 
         // 清除记录
         document.getElementById('clearRecords').addEventListener('click', () => {
-            if (confirm('确定要清除所有排行榜记录吗？')) {
-                this.clearAllRecords();
+            if (confirm('确定要清除当前排行榜的所有记录吗？')) {
+                this.clearRecords(this.currentMode, this.currentDifficulty);
             }
         });
 
-        // 点击模态框外部关闭
+        // 保存成绩按钮
+        document.getElementById('saveScoreBtn').addEventListener('click', () => {
+            game.saveScore();
+        });
+
+        // 跳过保存
+        document.getElementById('skipSaveBtn').addEventListener('click', () => {
+            game.skipSave();
+        });
+
+        // 点击模态框外部关闭排行榜
         document.getElementById('leaderboardPanel').addEventListener('click', (e) => {
             if (e.target.id === 'leaderboardPanel') {
                 this.hideLeaderboard();
@@ -72,26 +90,19 @@ class Leaderboard {
     }
 
     /**
-     * 添加新记录
+     * 添加新记录（暂存，等用户填写名字后保存）
      */
     addRecord(record) {
         const records = this.getAllRecords();
         records.push(record);
 
-        // 按时间排序，保留每个难度下的前50条记录
-        const sortedRecords = this.sortRecords(records);
+        // 按时间排序
+        records.sort((a, b) => a.time - b.time);
 
         // 保存
-        this.saveRecords(sortedRecords);
+        this.saveRecords(records);
 
         return this.getRank(record);
-    }
-
-    /**
-     * 排序记录（按时间升序）
-     */
-    sortRecords(records) {
-        return records.sort((a, b) => a.time - b.time);
     }
 
     /**
@@ -99,7 +110,7 @@ class Leaderboard {
      */
     getRank(record) {
         const records = this.getAllRecords()
-            .filter(r => r.difficulty === record.difficulty)
+            .filter(r => r.difficulty === record.difficulty && r.mode === record.mode)
             .sort((a, b) => a.time - b.time);
 
         return records.findIndex(r =>
@@ -110,11 +121,11 @@ class Leaderboard {
     }
 
     /**
-     * 获取指定难度的前N名记录
+     * 获取指定模式和难度的前10名记录
      */
-    getTopRecords(difficulty, limit = 10) {
+    getTopRecords(mode, difficulty, limit = 10) {
         const records = this.getAllRecords()
-            .filter(r => r.difficulty === difficulty)
+            .filter(r => r.mode === mode && r.difficulty === difficulty)
             .sort((a, b) => a.time - b.time);
 
         return records.slice(0, limit);
@@ -125,7 +136,15 @@ class Leaderboard {
      */
     showLeaderboard() {
         document.getElementById('leaderboardPanel').classList.remove('hidden');
-        this.renderLeaderboard(this.currentDifficulty);
+        // 设置模式标签
+        document.querySelectorAll('.mode-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === this.currentMode);
+        });
+        // 设置难度标签
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.difficulty === this.currentDifficulty);
+        });
+        this.renderLeaderboard();
     }
 
     /**
@@ -143,26 +162,37 @@ class Leaderboard {
     }
 
     /**
+     * 切换模式
+     */
+    switchMode(mode) {
+        this.currentMode = mode;
+
+        document.querySelectorAll('.mode-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+
+        this.renderLeaderboard();
+    }
+
+    /**
      * 切换难度标签
      */
     switchDifficulty(difficulty) {
         this.currentDifficulty = difficulty;
 
-        // 更新标签样式
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.difficulty === difficulty);
         });
 
-        // 重新渲染
-        this.renderLeaderboard(difficulty);
+        this.renderLeaderboard();
     }
 
     /**
      * 渲染排行榜内容
      */
-    renderLeaderboard(difficulty) {
+    renderLeaderboard() {
         const container = document.getElementById('leaderboardContent');
-        const records = this.getTopRecords(difficulty);
+        const records = this.getTopRecords(this.currentMode, this.currentDifficulty);
 
         if (records.length === 0) {
             container.innerHTML = `
@@ -174,26 +204,34 @@ class Leaderboard {
             return;
         }
 
-        const difficultyNames = { easy: '简单', medium: '中等', hard: '困难', expert: '专家' };
-
         container.innerHTML = records.map((record, index) => {
             const rank = index + 1;
             const rankClass = rank <= 3 ? `rank-${rank}` : '';
             const rankIcon = rank <= 3 ? ['', '🥇', '🥈', '🥉'][rank] : `#${rank}`;
-            const characterInfo = CHARACTERS[record.character];
+            const characterInfo = CHARACTERS[record.character] || { emoji: '🎮', name: '未知' };
+            const playerName = record.playerName || characterInfo.name;
 
             return `
                 <div class="leaderboard-item">
                     <div class="leaderboard-rank ${rankClass}">${rankIcon}</div>
                     <div class="leaderboard-avatar">${characterInfo.emoji}</div>
                     <div class="leaderboard-info">
-                        <div class="leaderboard-name">${characterInfo.name}</div>
+                        <div class="leaderboard-name">${this.escapeHtml(playerName)}</div>
                         <div class="leaderboard-date">${this.formatDate(record.date)}</div>
                     </div>
                     <div class="leaderboard-time">${this.formatTime(record.time)}</div>
                 </div>
             `;
         }).join('');
+    }
+
+    /**
+     * HTML 转义
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     /**
@@ -215,28 +253,34 @@ class Leaderboard {
         const now = new Date();
         const diff = now - date;
 
-        // 小于1小时
         if (diff < 3600000) {
             const minutes = Math.floor(diff / 60000);
             return minutes < 1 ? '刚刚' : `${minutes}分钟前`;
         }
 
-        // 小于1天
         if (diff < 86400000) {
             const hours = Math.floor(diff / 3600000);
             return `${hours}小时前`;
         }
 
-        // 小于7天
         if (diff < 604800000) {
             const days = Math.floor(diff / 86400000);
             return `${days}天前`;
         }
 
-        // 显示完整日期
         const month = date.getMonth() + 1;
         const day = date.getDate();
         return `${month}月${day}日`;
+    }
+
+    /**
+     * 清除当前模式和难度的记录
+     */
+    clearRecords(mode, difficulty) {
+        const records = this.getAllRecords()
+            .filter(r => !(r.mode === mode && r.difficulty === difficulty));
+        this.saveRecords(records);
+        this.renderLeaderboard();
     }
 
     /**
@@ -244,15 +288,7 @@ class Leaderboard {
      */
     clearAllRecords() {
         localStorage.removeItem(this.storageKey);
-        this.renderLeaderboard(this.currentDifficulty);
-    }
-
-    /**
-     * 清除指定难度的记录
-     */
-    clearDifficultyRecords(difficulty) {
-        const records = this.getAllRecords().filter(r => r.difficulty !== difficulty);
-        this.saveRecords(records);
+        this.renderLeaderboard();
     }
 
     /**
@@ -263,25 +299,33 @@ class Leaderboard {
 
         return {
             total: records.length,
-            easy: records.filter(r => r.difficulty === 'easy').length,
-            medium: records.filter(r => r.difficulty === 'medium').length,
-            hard: records.filter(r => r.difficulty === 'hard').length,
-            expert: records.filter(r => r.difficulty === 'expert').length,
-            bestTimes: {
-                easy: this.getBestTime('easy'),
-                medium: this.getBestTime('medium'),
-                hard: this.getBestTime('hard'),
-                expert: this.getBestTime('expert')
-            }
+            normal: records.filter(r => r.mode === 'normal').length,
+            fog: records.filter(r => r.mode === 'fog').length
         };
     }
 
     /**
-     * 获取指定难度的最佳成绩
+     * 获取指定模式的最佳成绩
      */
-    getBestTime(difficulty) {
-        const records = this.getTopRecords(difficulty, 1);
+    getBestTime(mode) {
+        const records = this.getAllRecords()
+            .filter(r => r.mode === mode)
+            .sort((a, b) => a.time - b.time);
         return records.length > 0 ? records[0].time : null;
+    }
+
+    /**
+     * 设置排行榜显示的模式
+     */
+    setCurrentMode(mode) {
+        this.currentMode = mode;
+    }
+
+    /**
+     * 设置排行榜显示的难度
+     */
+    setCurrentDifficulty(difficulty) {
+        this.currentDifficulty = difficulty;
     }
 }
 
